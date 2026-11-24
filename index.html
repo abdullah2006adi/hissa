@@ -55,6 +55,7 @@ grid-template-areas:"cR g3 g4 cL" "g2 st st g5" "g1 st st g6"}
 .deck{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .deck::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;margin:0;scroll-snap-align:start;display:grid;place-items:center;padding:8px}
+.lesson{flex:1;border:0;width:100%;background:#fff;display:block}
 .slide img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .empty{position:absolute;inset:0 0 54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}
 .empty h2{margin:0;font-size:clamp(34px,6vw,64px);line-height:1.05}
@@ -143,10 +144,11 @@ grid-template-areas:"st st" "cR cL" "g1 g2" "g3 g4" "g5 g6"}
 
   <section class="stage" id="stage" aria-label="شرائح الدرس">
     <div class="deck" id="deck" dir="ltr"></div>
+    <iframe class="lesson" id="lesson" title="الدرس" hidden allow="autoplay; fullscreen" sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
     <div class="empty" id="empty">
       <h2>شرائح الدرس</h2>
-      <p>ارفع ملف PDF أو صور الشرائح، أو اسحبها إلى هنا. عرض PowerPoint أو Keynote: صدّره أولاً بصيغة PDF.</p>
-      <label class="upl big">رفع الشرائح<input type="file" accept="application/pdf,image/*" multiple data-upl></label>
+      <p>ارفع ملف الدرس (HTML)، أو ملف PDF أو صور الشرائح، أو اسحبه إلى هنا.</p>
+      <label class="upl big">رفع الدرس<input type="file" accept=".html,.htm,text/html,application/pdf,image/*" multiple data-upl></label>
       <p id="loadMsg"></p>
     </div>
     <div class="nav">
@@ -155,8 +157,8 @@ grid-template-areas:"st st" "cR cL" "g1 g2" "g3 g4" "g5 g6"}
       <button id="next" aria-label="الشريحة التالية">التالية ←</button>
       <span class="spacer"></span>
       <span id="navTime"></span>
-      <label class="upl">إضافة شرائح<input type="file" accept="application/pdf,image/*" multiple data-upl></label>
-      <button id="clearSlides">مسح الشرائح</button>
+      <label class="upl">رفع درس أو شرائح<input type="file" accept=".html,.htm,text/html,application/pdf,image/*" multiple data-upl></label>
+      <button id="clearSlides">مسح العرض</button>
     </div>
 
     <div class="over" id="timerOver" hidden>
@@ -255,7 +257,7 @@ $('#classes').addEventListener('click',e=>{
   db.cur=b.dataset.cls;save();renderAll();
 });
 $('#minusBtn').addEventListener('click',e=>{minus=!minus;e.currentTarget.setAttribute('aria-pressed',minus);renderGroups()});
-$('#focusBtn').addEventListener('click',e=>{const on=document.body.classList.toggle('focus');e.currentTarget.setAttribute('aria-pressed',on);setTimeout(()=>go(cur()),60)});
+$('#focusBtn').addEventListener('click',e=>{const on=document.body.classList.toggle('focus');e.currentTarget.setAttribute('aria-pressed',on);setTimeout(()=>{if(!lesson)go(cur())},60)});
 $('#fsBtn').addEventListener('click',()=>{
   try{const p=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(e){}
 });
@@ -271,12 +273,28 @@ function renderDeck(){
   deck.innerHTML=slides.map((u,i)=>`<figure class="slide"><img src="${esc(u)}" alt="شريحة ${i+1}"></figure>`).join('');
   $('#empty').hidden=slides.length>0;updCount();
 }
-const cur=()=>deck.clientWidth?Math.round(deck.scrollLeft/deck.clientWidth):0;
-function go(i){if(!slides.length)return;i=Math.max(0,Math.min(slides.length-1,i));deck.scrollTo({left:i*deck.clientWidth,behavior:reduce?'auto':'smooth'});setTimeout(updCount,400)}
-function updCount(){$('#count').textContent=slides.length?`${cur()+1} / ${slides.length}`:'0 / 0'}
+const cur=()=>lesson?lpos:deck.clientWidth?Math.round(deck.scrollLeft/deck.clientWidth):0;
+let lesson=null,lpos=0,ltot=0;const fr=$('#lesson');
+const BRIDGE='<scr'+'ipt>(function(){function key(k,c){var o={key:k,code:k,keyCode:c,which:c,bubbles:true};document.dispatchEvent(new KeyboardEvent("keydown",o));document.dispatchEvent(new KeyboardEvent("keyup",o))}'
+ +'addEventListener("message",function(e){var d=e.data||{};if(d.hissa!=="cmd")return;var h=window.hissaLesson;if(d.cmd==="next"){h&&h.next?h.next():key("ArrowRight",39)}else if(d.cmd==="prev"){h&&h.prev?h.prev():key("ArrowLeft",37)}});'
+ +'window.hissa={report:function(p,t){parent.postMessage({hissa:"state",pos:p,total:t},"*")},points:function(g,n){parent.postMessage({hissa:"points",group:g,points:n||1},"*")}};})();</scr'+'ipt>';
+function withBridge(h){const i=h.search(/<\/body>(?![\s\S]*<\/body>)/i);return i<0?h+BRIDGE:h.slice(0,i)+BRIDGE+h.slice(i)}
+function showLesson(){
+  if(lesson){lpos=ltot=0;fr.srcdoc=withBridge(lesson.html);fr.hidden=false;deck.hidden=true}
+  else{fr.hidden=true;fr.removeAttribute('srcdoc');deck.hidden=false}
+  $('#empty').hidden=!!lesson||slides.length>0;updCount();
+}
+const send=cmd=>{try{fr.contentWindow.postMessage({hissa:'cmd',cmd},'*')}catch(e){}};
+addEventListener('message',e=>{
+  if(!lesson||e.source!==fr.contentWindow||!e.data)return;const d=e.data;
+  if(d.hissa==='state'){lpos=+d.pos||0;ltot=+d.total||0;updCount()}
+  if(d.hissa==='points'){const g=Math.round(+d.group)-1,n=Math.round(+d.points)||1;if(g>=0&&g<cls().count)addGroup(g,n,$('#count'))}
+});
+function go(i){if(lesson){send(i>cur()?'next':'prev');return}if(!slides.length)return;i=Math.max(0,Math.min(slides.length-1,i));deck.scrollTo({left:i*deck.clientWidth,behavior:reduce?'auto':'smooth'});setTimeout(updCount,400)}
+function updCount(){$('#count').textContent=lesson?(ltot?`${lpos} / ${ltot}`:lesson.name):slides.length?`${cur()+1} / ${slides.length}`:'0 / 0'}
 deck.addEventListener('scroll',()=>requestAnimationFrame(updCount));
-$('#next').addEventListener('click',()=>go(cur()+1));
-$('#prev').addEventListener('click',()=>go(cur()-1));
+$('#next').addEventListener('click',()=>lesson?send('next'):go(cur()+1));
+$('#prev').addEventListener('click',()=>lesson?send('prev'):go(cur()-1));
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 async function ensurePdf(){
   if(window.pdfjsLib)return;
@@ -285,8 +303,12 @@ async function ensurePdf(){
   window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js';
 }
 async function addFiles(files){
-  const msg=$('#loadMsg');$('#empty').hidden=false;
+  const msg=$('#loadMsg');let gotImg=false;
   for(const f of files){
+    if(/\.html?$/i.test(f.name)||f.type==='text/html'){
+      lesson={name:f.name.replace(/\.html?$/i,''),html:await f.text()};gotImg=false;idbSet('lesson',lesson);continue;
+    }
+    gotImg=true;$('#empty').hidden=false;$('#lesson').hidden=true;
     if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
       try{
         msg.textContent='جارٍ تجهيز ملف PDF…';await ensurePdf();
@@ -301,20 +323,22 @@ async function addFiles(files){
       }catch(e){msg.textContent='تعذّر فتح ملف PDF. جرّب تصدير الشرائح صوراً.';return}
     }else if(f.type.startsWith('image/'))blobs.push(f);
   }
-  msg.textContent='';renderDeck();idbSet('slides',blobs);
+  msg.textContent='';
+  if(gotImg){lesson=null;idbSet('lesson',null);renderDeck();idbSet('slides',blobs)}
+  showLesson();
 }
 document.addEventListener('change',e=>{if(e.target.matches('[data-upl]')){addFiles([...e.target.files]);e.target.value=''}});
 const stage=$('#stage');
 stage.addEventListener('dragover',e=>e.preventDefault());
 stage.addEventListener('drop',e=>{e.preventDefault();addFiles([...e.dataTransfer.files])});
-$('#clearSlides').addEventListener('click',()=>{blobs=[];renderDeck();idbSet('slides',[])});
+$('#clearSlides').addEventListener('click',()=>{blobs=[];lesson=null;renderDeck();showLesson();idbSet('slides',[]);idbSet('lesson',null)});
 document.addEventListener('keydown',e=>{
   if(e.target.closest('input,textarea,select')||$('#dlg').open)return;
-  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(cur()+1)}
-  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(cur()-1)}
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();lesson?send('next'):go(cur()+1)}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();lesson?send('prev'):go(cur()-1)}
 });
-idbGet('slides').then(b=>{if(b&&b.length){blobs=b;renderDeck()}});
-addEventListener('resize',()=>go(cur()));
+idbGet('slides').then(b=>{if(b&&b.length){blobs=b;renderDeck()}return idbGet('lesson')}).then(l=>{if(l&&l.html){lesson=l;showLesson()}});
+addEventListener('resize',()=>{if(!lesson)go(cur())});
 
 /* ---------- timer ---------- */
 const T={total:180,left:180,run:false,end:0};let actx=null;
