@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حصّتي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a teacher's working board — calm, clear from the back row, quick to tap.
+   IDEA: the classroom seen from above: the screen in the middle, six desk groups around it in a U.
+   PICTURE: the room itself — dark projection screen centre, coloured group "desks" framing it.
+   COLOUR and TYPE: white room, near-black screen, six team colours as the only strong hues; Readex Pro.
+   LAYOUT: 4×3 grid — corners hold timer and random pick, groups 1–6 run counter-clockwise from bottom-right. */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#111216);--surf:light-dark(#f5f5f7,#1b1c22);--ink:light-dark(#17171c,#f1f1f4);
+--mute:light-dark(#5d5d68,#a4a4b0);--line:light-dark(#e1e1e7,#2d2e37);--screen:#0e0f13;--warn:#e0302f;--acc:#2e86de}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Readex Pro",Tahoma,system-ui,sans-serif;overflow-x:clip;display:flex;flex-direction:column}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surf);border-radius:10px;padding:8px 12px;min-height:40px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px}
+.classes,.tools{display:flex;flex-wrap:wrap;gap:6px}
+.classes button{font-weight:600}
+.tools{margin-inline-start:auto}
+.tools button{font-size:14px}
+#minusBtn[aria-pressed=true]{background:var(--warn);border-color:var(--warn);color:#fff}
+.room{flex:1;min-height:0;display:grid;gap:10px;padding:10px;
+grid-template-columns:minmax(150px,1fr) 2.2fr 2.2fr minmax(150px,1fr);
+grid-template-rows:clamp(100px,18vh,160px) 1fr 1fr;
+grid-template-areas:"cR g3 g4 cL" "g2 st st g5" "g1 st st g6"}
+#timerMini{grid-area:cR}#pickMini{grid-area:cL}#stage{grid-area:st}
+#g0{grid-area:g1}#g1{grid-area:g2}#g2{grid-area:g3}#g3{grid-area:g4}#g4{grid-area:g5}#g5{grid-area:g6}
+.corner{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;font-size:14px;color:var(--mute)}
+.ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--acc) calc(var(--p,1)*1turn),var(--line) 0)}
+.ring span{width:52px;height:52px;border-radius:50%;background:var(--surf);display:grid;place-items:center;font-weight:700;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+.corner.warn .ring{background:conic-gradient(var(--warn) calc(var(--p,1)*1turn),var(--line) 0)}
+.grp{--c:#888;display:flex;flex-direction:column;border-radius:14px;background:color-mix(in srgb,var(--c) 9%,var(--bg));border:1px solid color-mix(in srgb,var(--c) 30%,transparent);overflow:hidden}
+.grp header{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--c);color:#fff}
+.gname{font-weight:600;flex:1}
+.gscore{font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.gb{min-height:34px;padding:2px 10px;background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.4);color:#fff;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px;overflow:auto;align-content:flex-start;flex:1}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border-color:color-mix(in srgb,var(--c) 35%,transparent);padding:6px 10px;min-height:38px;font-size:15px}
+.chip b{font-size:13px;min-width:22px;padding:1px 6px;border-radius:99px;background:color-mix(in srgb,var(--c) 18%,transparent);text-align:center}
+.none{margin:auto;color:var(--mute);font-size:14px}
+.stage{position:relative;border-radius:16px;background:var(--screen);color:#f1f1f4;overflow:hidden;display:flex;flex-direction:column;min-height:260px}
+.deck{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.deck::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;margin:0;scroll-snap-align:start;display:grid;place-items:center;padding:8px}
+.slide img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.empty{position:absolute;inset:0 0 54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}
+.empty h2{margin:0;font-size:clamp(34px,6vw,64px);line-height:1.05}
+.empty p{margin:0;color:#a9a9b6;max-width:46ch;font-size:15px}
+.nav{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #23242c;flex-wrap:wrap}
+.nav button,.over button,.upl{background:#1d1e26;border:1px solid #33343f;color:#f1f1f4}
+.upl{border-radius:10px;padding:8px 14px;min-height:40px;display:inline-flex;align-items:center;cursor:pointer}
+.upl.big{background:#f1f1f4;color:#111;font-weight:600;padding:10px 20px}
+.upl input{display:none}
+#count{font-variant-numeric:tabular-nums;color:#c9c9d3;min-width:70px;text-align:center}
+#navTime{font-weight:700;font-variant-numeric:tabular-nums;color:#8cc4ff}
+.spacer{flex:1}
+.over{position:absolute;inset:0;background:rgba(10,11,15,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;z-index:3}
+.over[hidden]{display:none}
+.bigtime{font-size:clamp(70px,14vw,180px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.bigtime.warn{color:var(--warn)}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.over .go{background:#f1f1f4;color:#111;font-weight:700;padding:10px 26px}
+.x{position:absolute;top:10px;inset-inline-start:10px}
+.picked{font-size:clamp(40px,8vw,96px);font-weight:700;line-height:1.1;padding:8px 28px;border-radius:20px;background:var(--pc,#2b2c35)}
+.plabel{color:#b8b8c4;font-size:17px;min-height:26px}
+.over select{background:#1d1e26;border:1px solid #33343f;border-radius:10px;padding:8px;min-height:40px;color:#f1f1f4}
+.over label{display:inline-flex;align-items:center;gap:6px;font-size:15px}
+.pop{position:fixed;z-index:9;font-weight:700;font-size:26px;pointer-events:none;color:var(--pc);animation:up .9s ease-out forwards;text-shadow:0 1px 0 var(--bg)}
+@keyframes up{to{transform:translateY(-46px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pop{animation:none;opacity:0}.deck{scroll-behavior:auto}}
+dialog{width:min(900px,95vw);max-height:90vh;border:1px solid var(--line);border-radius:18px;padding:0;background:var(--bg);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:1}
+.dh h3{margin:0;font-size:22px;flex:1}
+.db{padding:16px 18px;display:grid;gap:16px}
+.box{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:10px}
+.box h4{margin:0;font-size:17px}
+.note{margin:0;color:var(--mute);font-size:14px}
+textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surf);font-size:16px}
+input[type=text],select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surf);font-size:16px;min-height:42px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:6px;border-bottom:1px solid var(--line);text-align:start}
+td input{width:100%}
+td.n{text-align:end;font-variant-numeric:tabular-nums}
+.danger{color:var(--warn)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:4px;background:var(--c);margin-inline-end:6px;vertical-align:-1px}
+.bars{display:grid;gap:8px}
+.brow{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:10px}
+.track{height:22px;border-radius:7px;background:var(--surf);overflow:hidden}
+.fill{height:100%;background:var(--c);border-radius:7px}
+.top{margin:0;padding-inline-start:22px;columns:2;font-size:15px}
+.focus .grp,.focus .corner{display:none}
+.focus .room{grid-template:1fr/1fr;grid-template-areas:"st"}
+@media(max-width:900px){
+body{height:auto;display:block}
+.room{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(120px,auto);
+grid-template-areas:"st st" "cR cL" "g1 g2" "g3 g4" "g5 g6"}
+.stage{height:62vw;min-height:280px}
+.corner{min-height:110px}
+.tools{margin-inline-start:0}
+}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:6em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:5.5em;margin-inline-start:-6em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.top{columns:1}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="7" width="14" height="11" rx="2" fill="#17171c" stroke="#888" stroke-width=".5"/><rect x="2" y="7" width="3" height="11" rx="1.5" fill="#2e86de"/><rect x="23" y="7" width="3" height="11" rx="1.5" fill="#d63384"/><rect x="7" y="2" width="6" height="3" rx="1.5" fill="#e0a800"/><rect x="15" y="2" width="6" height="3" rx="1.5" fill="#8e44ad"/><rect x="2" y="20" width="3" height="6" rx="1.5" fill="#e4572e"/><rect x="23" y="20" width="3" height="6" rx="1.5" fill="#16a085"/></svg>حصّتي</div>
+  <nav class="classes" id="classes" aria-label="الصفوف"></nav>
+  <div class="tools">
+    <button data-open="students">الطلاب والمجموعات</button>
+    <button data-open="points">النقاط</button>
+    <button data-open="games">الألعاب</button>
+    <button id="minusBtn" aria-pressed="false" title="عند تفعيله يخصم الضغط على الاسم نقطة">وضع الخصم</button>
+    <button id="focusBtn" aria-pressed="false">تكبير الشرائح</button>
+    <button id="fsBtn">ملء الشاشة</button>
+    <button data-open="backup">نسخة احتياطية</button>
+  </div>
+</header>
+
+<main class="room" id="room">
+  <button class="corner" id="timerMini" aria-label="المؤقت"><div class="ring" id="ring"><span id="miniTime">03:00</span></div>المؤقت</button>
+  <button class="corner" id="pickMini"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><rect x="5" y="5" width="36" height="36" rx="9" fill="currentColor" opacity=".14"/><rect x="5" y="5" width="36" height="36" rx="9" fill="none" stroke="currentColor" stroke-width="2"/><g fill="currentColor"><circle cx="15" cy="15" r="3.4"/><circle cx="31" cy="15" r="3.4"/><circle cx="23" cy="23" r="3.4"/><circle cx="15" cy="31" r="3.4"/><circle cx="31" cy="31" r="3.4"/></g></svg>اختيار عشوائي</button>
+  <section class="grp" id="g0"></section>
+  <section class="grp" id="g1"></section>
+  <section class="grp" id="g2"></section>
+  <section class="grp" id="g3"></section>
+  <section class="grp" id="g4"></section>
+  <section class="grp" id="g5"></section>
+
+  <section class="stage" id="stage" aria-label="شرائح الدرس">
+    <div class="deck" id="deck" dir="ltr"></div>
+    <div class="empty" id="empty">
+      <h2>شرائح الدرس</h2>
+      <p>ارفع ملف PDF أو صور الشرائح، أو اسحبها إلى هنا. عرض PowerPoint أو Keynote: صدّره أولاً بصيغة PDF.</p>
+      <label class="upl big">رفع الشرائح<input type="file" accept="application/pdf,image/*" multiple data-upl></label>
+      <p id="loadMsg"></p>
+    </div>
+    <div class="nav">
+      <button id="prev" aria-label="الشريحة السابقة">→ السابقة</button>
+      <span id="count">0 / 0</span>
+      <button id="next" aria-label="الشريحة التالية">التالية ←</button>
+      <span class="spacer"></span>
+      <span id="navTime"></span>
+      <label class="upl">إضافة شرائح<input type="file" accept="application/pdf,image/*" multiple data-upl></label>
+      <button id="clearSlides">مسح الشرائح</button>
+    </div>
+
+    <div class="over" id="timerOver" hidden>
+      <button class="x" data-close="timerOver">إغلاق</button>
+      <div class="bigtime" id="bigTime">03:00</div>
+      <div class="row" id="presets"></div>
+      <div class="row">
+        <button data-tadd="-30">− 30 ث</button>
+        <button class="go" id="tGo">ابدأ</button>
+        <button id="tReset">إعادة</button>
+        <button data-tadd="30">+ 30 ث</button>
+      </div>
+    </div>
+
+    <div class="over" id="pickOver" hidden>
+      <button class="x" data-close="pickOver">إغلاق</button>
+      <div class="row">
+        <select id="pScope" aria-label="نطاق الاختيار"></select>
+        <label><input type="checkbox" id="pNoRep" checked> بدون تكرار</label>
+      </div>
+      <div class="picked" id="pName">؟</div>
+      <div class="plabel" id="pLabel"></div>
+      <div class="row">
+        <button class="go" id="pGo">اختر</button>
+        <button id="pPlus">+1 نقطة</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg"><div class="dh"><h3 id="dTitle"></h3><button id="dClose">إغلاق</button></div><div class="db" id="dBody"></div></dialog>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLORS=['#e4572e','#2e86de','#e0a800','#8e44ad','#16a085','#d63384'];
+const LV=['','متقدّم','متوسّط','يحتاج دعماً'];
+const KEY='hissati-v1';
+const SAMPLE=['أحمد','محمد','عبدالرحمن','يوسف','خالد','عمر','حمد','سالم','فهد','ناصر','علي','جاسم','راشد','سعود','مبارك','عبدالعزيز','إبراهيم','حسن','فيصل','تميم','ماجد','طلال','بدر','منصور'];
+const uid=()=>Math.random().toString(36).slice(2,10);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function blank(){return{students:[],bonus:[0,0,0,0,0,0],count:6,picked:[],sample:false}}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function distribute(k,mode){
+  const n=k.count,list=shuffle(k.students.slice()).sort((a,b)=>a.level-b.level);
+  if(mode==='mix')list.forEach((s,i)=>{const r=Math.floor(i/n),c=i%n;s.group=r%2?n-1-c:c});
+  else list.forEach((s,i)=>{s.group=Math.floor(i*n/list.length)});
+}
+let db=null;
+try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!db||!db.classes){
+  db={cur:'تاسع5',classes:{}};
+  ['تاسع5','تاسع6','تاسع7','تاسع8'].forEach(c=>db.classes[c]=blank());
+  const k=db.classes['تاسع5'];k.sample=true;
+  k.students=SAMPLE.map((n,i)=>({id:uid(),name:n,level:i%3+1,group:0,pts:0}));
+  distribute(k,'mix');
+}
+if(!db.classes[db.cur])db.cur=Object.keys(db.classes)[0];
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+const cls=()=>db.classes[db.cur];
+const score=(k,g)=>k.bonus[g]+k.students.filter(s=>s.group===g).reduce((a,s)=>a+s.pts,0);
+let minus=false;
+
+/* ---------- classes & groups ---------- */
+function renderClasses(){
+  $('#classes').innerHTML=Object.keys(db.classes).map(c=>`<button data-cls="${esc(c)}" aria-pressed="${c===db.cur}">${esc(c)}</button>`).join('');
+}
+function renderGroups(){
+  const k=cls();
+  for(let g=0;g<6;g++){
+    const el=$('#g'+g);
+    if(g>=k.count){el.hidden=true;el.innerHTML='';continue}
+    el.hidden=false;el.style.setProperty('--c',COLORS[g]);
+    const mem=k.students.filter(s=>s.group===g);
+    el.innerHTML=`<header><span class="gname">المجموعة ${g+1}</span><span class="gscore">${score(k,g)}</span><button class="gb" data-gp="${g}" aria-label="نقطة للمجموعة">${minus?'−1':'+1'}</button></header><div class="chips">${mem.length?mem.map(s=>`<button class="chip" data-sid="${esc(s.id)}">${esc(s.name)}<b>${s.pts}</b></button>`).join(''):'<p class="none">لا أسماء بعد</p>'}</div>`;
+  }
+}
+function pop(el,d,color){
+  if(!el)return;const r=el.getBoundingClientRect(),p=document.createElement('div');
+  p.className='pop';p.textContent=(d>0?'+':'−')+Math.abs(d);p.style.setProperty('--pc',color);
+  p.style.left=(r.left+r.width/2-14)+'px';p.style.top=(r.top-6)+'px';
+  document.body.appendChild(p);setTimeout(()=>p.remove(),950);
+}
+function addStudent(id,d,src){
+  const k=cls(),s=k.students.find(x=>x.id===id);if(!s)return;
+  s.pts+=d;save();pop(src,d,COLORS[s.group]||'#888');renderGroups();
+}
+function addGroup(g,d,src){const k=cls();k.bonus[g]+=d;save();pop(src,d,COLORS[g]);renderGroups()}
+$('#room').addEventListener('click',e=>{
+  const c=e.target.closest('[data-sid]');if(c){addStudent(c.dataset.sid,minus?-1:1,c);return}
+  const g=e.target.closest('[data-gp]');if(g)addGroup(+g.dataset.gp,minus?-1:1,g);
+});
+$('#classes').addEventListener('click',e=>{
+  const b=e.target.closest('[data-cls]');if(!b)return;
+  db.cur=b.dataset.cls;save();renderAll();
+});
+$('#minusBtn').addEventListener('click',e=>{minus=!minus;e.currentTarget.setAttribute('aria-pressed',minus);renderGroups()});
+$('#focusBtn').addEventListener('click',e=>{const on=document.body.classList.toggle('focus');e.currentTarget.setAttribute('aria-pressed',on);setTimeout(()=>go(cur()),60)});
+$('#fsBtn').addEventListener('click',()=>{
+  try{const p=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+});
+
+/* ---------- slides ---------- */
+const deck=$('#deck');let slides=[],blobs=[];
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('hissati',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbSet(k,v){try{const d=await idb();d.transaction('kv','readwrite').objectStore('kv').put(v,k)}catch(e){}}
+async function idbGet(k){try{const d=await idb();return await new Promise(res=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})}catch(e){return null}}
+function renderDeck(){
+  slides.forEach(u=>URL.revokeObjectURL(u));
+  slides=blobs.map(b=>URL.createObjectURL(b));
+  deck.innerHTML=slides.map((u,i)=>`<figure class="slide"><img src="${esc(u)}" alt="شريحة ${i+1}"></figure>`).join('');
+  $('#empty').hidden=slides.length>0;updCount();
+}
+const cur=()=>deck.clientWidth?Math.round(deck.scrollLeft/deck.clientWidth):0;
+function go(i){if(!slides.length)return;i=Math.max(0,Math.min(slides.length-1,i));deck.scrollTo({left:i*deck.clientWidth,behavior:reduce?'auto':'smooth'});setTimeout(updCount,400)}
+function updCount(){$('#count').textContent=slides.length?`${cur()+1} / ${slides.length}`:'0 / 0'}
+deck.addEventListener('scroll',()=>requestAnimationFrame(updCount));
+$('#next').addEventListener('click',()=>go(cur()+1));
+$('#prev').addEventListener('click',()=>go(cur()-1));
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function ensurePdf(){
+  if(window.pdfjsLib)return;
+  const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  await loadScript(base+'pdf.min.js');await loadScript(base+'pdf.worker.min.js');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js';
+}
+async function addFiles(files){
+  const msg=$('#loadMsg');$('#empty').hidden=false;
+  for(const f of files){
+    if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+      try{
+        msg.textContent='جارٍ تجهيز ملف PDF…';await ensurePdf();
+        const pdf=await window.pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+        for(let p=1;p<=pdf.numPages;p++){
+          msg.textContent=`جارٍ تجهيز الشريحة ${p} من ${pdf.numPages}`;
+          const page=await pdf.getPage(p),v0=page.getViewport({scale:1}),v=page.getViewport({scale:1800/v0.width});
+          const cv=document.createElement('canvas');cv.width=v.width;cv.height=v.height;
+          await page.render({canvasContext:cv.getContext('2d'),viewport:v}).promise;
+          blobs.push(await new Promise(r=>cv.toBlob(r,'image/jpeg',.9)));
+        }
+      }catch(e){msg.textContent='تعذّر فتح ملف PDF. جرّب تصدير الشرائح صوراً.';return}
+    }else if(f.type.startsWith('image/'))blobs.push(f);
+  }
+  msg.textContent='';renderDeck();idbSet('slides',blobs);
+}
+document.addEventListener('change',e=>{if(e.target.matches('[data-upl]')){addFiles([...e.target.files]);e.target.value=''}});
+const stage=$('#stage');
+stage.addEventListener('dragover',e=>e.preventDefault());
+stage.addEventListener('drop',e=>{e.preventDefault();addFiles([...e.dataTransfer.files])});
+$('#clearSlides').addEventListener('click',()=>{blobs=[];renderDeck();idbSet('slides',[])});
+document.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea,select')||$('#dlg').open)return;
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(cur()+1)}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(cur()-1)}
+});
+idbGet('slides').then(b=>{if(b&&b.length){blobs=b;renderDeck()}});
+addEventListener('resize',()=>go(cur()));
+
+/* ---------- timer ---------- */
+const T={total:180,left:180,run:false,end:0};let actx=null;
+const fmt=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+function beep(){try{actx=actx||new AudioContext();[0,.4,.8].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain(),st=actx.currentTime+t;o.frequency.value=880;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(.4,st+.02);g.gain.exponentialRampToValueAtTime(.0001,st+.32);o.start(st);o.stop(st+.35)})}catch(e){}}
+function drawTimer(){
+  const t=fmt(T.left),warn=T.left<=10&&T.total>10;
+  $('#miniTime').textContent=t;$('#ring').style.setProperty('--p',T.total?T.left/T.total:0);
+  $('#timerMini').classList.toggle('warn',warn);
+  const b=$('#bigTime');b.textContent=T.left<=0&&!T.run&&T.done?'انتهى الوقت':t;b.classList.toggle('warn',warn||T.done);
+  $('#tGo').textContent=T.run?'إيقاف مؤقت':'ابدأ';
+  $('#navTime').textContent=T.run||T.left<T.total?'⏱ '+t:'';
+}
+setInterval(()=>{if(!T.run)return;T.left=(T.end-Date.now())/1000;if(T.left<=0){T.left=0;T.run=false;T.done=true;beep();showOver('timerOver')}drawTimer()},250);
+$('#presets').innerHTML=[1,2,3,5,10,15].map(m=>`<button data-tmin="${m}">${m} د</button>`).join('');
+$('#timerOver').addEventListener('click',e=>{
+  const m=e.target.closest('[data-tmin]'),a=e.target.closest('[data-tadd]');
+  if(m){T.total=T.left=+m.dataset.tmin*60;T.run=false;T.done=false}
+  if(a){const d=+a.dataset.tadd;T.left=Math.max(0,T.left+d);if(!T.run)T.total=Math.max(T.left,1);else{T.end+=d*1000;T.total=Math.max(T.total,T.left)}T.done=false}
+  drawTimer();
+});
+$('#tGo').addEventListener('click',()=>{
+  try{actx=actx||new AudioContext();actx.resume()}catch(e){}
+  if(T.run){T.run=false}else{if(T.left<=0)T.left=T.total;T.done=false;T.end=Date.now()+T.left*1000;T.run=true}
+  drawTimer();
+});
+$('#tReset').addEventListener('click',()=>{T.run=false;T.done=false;T.left=T.total;drawTimer()});
+function showOver(id){['timerOver','pickOver'].forEach(o=>$('#'+o).hidden=o!==id)}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='timerOver')T.done=false}));
+$('#timerMini').addEventListener('click',()=>{if(document.body.classList.contains('focus'))return;showOver('timerOver');drawTimer()});
+$('#navTime').addEventListener('click',()=>showOver('timerOver'));
+
+/* ---------- random pick ---------- */
+let last=null,spinning=false;
+function fillScope(){
+  const k=cls(),v=$('#pScope').value;
+  $('#pScope').innerHTML=`<option value="all">الصف كله</option><option value="rg">مجموعة عشوائية</option>`+[...Array(k.count).keys()].map(g=>`<option value="g${g}">المجموعة ${g+1}</option>`).join('');
+  if([...$('#pScope').options].some(o=>o.value===v))$('#pScope').value=v;
+}
+function spin(names,done){
+  const box=$('#pName');if(reduce||names.length<2){done();return}
+  spinning=true;const t0=Date.now();
+  const iv=setInterval(()=>{box.textContent=names[Math.floor(Math.random()*names.length)];if(Date.now()-t0>1300){clearInterval(iv);spinning=false;done()}},70);
+}
+function doPick(){
+  if(spinning)return;
+  const k=cls(),sc=$('#pScope').value,box=$('#pName'),lab=$('#pLabel');let note='';
+  box.style.removeProperty('--pc');lab.textContent='';
+  if(sc==='rg'){
+    const gs=[...Array(k.count).keys()].filter(g=>k.students.some(s=>s.group===g));
+    if(!gs.length){box.textContent='—';lab.textContent='لا توجد مجموعات فيها طلاب';return}
+    const g=gs[Math.floor(Math.random()*gs.length)];last={group:g};
+    spin(gs.map(x=>'المجموعة '+(x+1)),()=>{box.textContent='المجموعة '+(g+1);box.style.setProperty('--pc',COLORS[g]);
+      lab.textContent=k.students.filter(s=>s.group===g).map(s=>s.name).join('، ')});
+    return;
+  }
+  const pool=k.students.filter(s=>sc==='all'||s.group===+sc.slice(1));
+  if(!pool.length){box.textContent='—';lab.textContent='لا يوجد طلاب هنا';return}
+  let fresh=pool;
+  if($('#pNoRep').checked){
+    fresh=pool.filter(s=>!k.picked.includes(s.id));
+    if(!fresh.length){k.picked=k.picked.filter(id=>!pool.some(s=>s.id===id));fresh=pool;note='انتهت الجولة — بدأت جولة جديدة · '}
+  }
+  const w=fresh[Math.floor(Math.random()*fresh.length)];
+  if($('#pNoRep').checked)k.picked.push(w.id);save();last={id:w.id};
+  spin(pool.map(s=>s.name),()=>{box.textContent=w.name;box.style.setProperty('--pc',COLORS[w.group]);
+    const left=$('#pNoRep').checked?pool.filter(s=>!k.picked.includes(s.id)).length:null;
+    lab.textContent=note+'المجموعة '+(w.group+1)+(left!==null?` · بقي ${left} لم يُختاروا`:'')});
+}
+$('#pickMini').addEventListener('click',()=>{fillScope();showOver('pickOver');doPick()});
+$('#pGo').addEventListener('click',doPick);
+$('#pPlus').addEventListener('click',e=>{if(!last||spinning)return;if(last.group!==undefined)addGroup(last.group,1,e.currentTarget);else addStudent(last.id,1,e.currentTarget)});
+
+/* ---------- dialog panels ---------- */
+const dlg=$('#dlg');let panel='';
+function open(p){panel=p;renderPanel();if(!dlg.open)dlg.showModal()}
+$('#dClose').addEventListener('click',()=>dlg.close());
+dlg.addEventListener('close',()=>renderAll());
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>open(b.dataset.open)));
+let pending=null;
+function ask(msg,fn){pending=fn;$('#dBody').innerHTML=`<div class="box"><h4>${esc(msg)}</h4><div class="row" style="justify-content:flex-start"><button class="danger" data-act="yes">نعم، نفّذ</button><button data-act="no">تراجع</button></div></div>`}
+function renderPanel(){
+  const k=cls(),B=$('#dBody'),ti=$('#dTitle');
+  if(panel==='students'){
+    ti.textContent='الطلاب والمجموعات — '+db.cur;
+    const opts=(n,v)=>[...Array(n).keys()].map(g=>`<option value="${g}"${g===v?' selected':''}>المجموعة ${g+1}</option>`).join('');
+    B.innerHTML=`${k.sample?`<div class="box"><p class="note">هذه أسماء تجريبية للعرض فقط.</p><div><button class="danger" data-act="clearAll">حذف الأسماء التجريبية</button></div></div>`:''}
+    <div class="box"><h4>إضافة أسماء</h4><p class="note">اسم في كل سطر. يمكنك كتابة المستوى بعد الاسم: «خالد - 1» (1 متقدّم، 2 متوسّط، 3 يحتاج دعماً).</p>
+    <textarea id="names" placeholder="أحمد علي - 1&#10;محمد سالم - 2"></textarea>
+    <div class="row" style="justify-content:flex-start"><select id="defLv">${[1,2,3].map(l=>`<option value="${l}"${l===2?' selected':''}>المستوى الافتراضي: ${LV[l]}</option>`).join('')}</select><button data-act="add">أضف إلى ${esc(db.cur)}</button></div></div>
+    <div class="box"><h4>تقسيم المجموعات</h4><p class="note">متوازنة: كل مجموعة فيها متقدّمون ومتوسّطون ومن يحتاج دعماً. متجانسة: كل مجموعة من مستوى متقارب. المستويات لا تظهر على الشاشة أمام الطلاب.</p>
+    <div class="row" style="justify-content:flex-start"><select id="gCount">${[2,3,4,5,6].map(n=>`<option${n===k.count?' selected':''}>${n}</option>`).join('')}</select><button data-act="mix">وزّع متوازنة</button><button data-act="same">وزّع متجانسة</button></div></div>
+    <div class="box"><h4>القائمة (${k.students.length})</h4>${k.students.length?`<table class="stack"><thead><tr><th>الاسم</th><th>المستوى</th><th>المجموعة</th><th>النقاط</th><th></th></tr></thead><tbody>${k.students.map(s=>`<tr><td><input type="text" value="${esc(s.name)}" data-f="name" data-id="${esc(s.id)}" aria-label="الاسم"></td><td><select data-f="level" data-id="${esc(s.id)}">${[1,2,3].map(l=>`<option value="${l}"${l===s.level?' selected':''}>${LV[l]}</option>`).join('')}</select></td><td><select data-f="group" data-id="${esc(s.id)}">${opts(k.count,s.group)}</select></td><td class="n">${s.pts}</td><td><button class="danger" data-act="del" data-id="${esc(s.id)}" aria-label="حذف">حذف</button></td></tr>`).join('')}</tbody></table>`:'<p class="note">لا أسماء بعد في هذا الصف.</p>'}</div>
+    <div class="box"><h4>الصفوف</h4><div class="row" style="justify-content:flex-start"><input type="text" id="newCls" placeholder="اسم صف جديد"><button data-act="addCls">إضافة صف</button>${k.students.length?'<button class="danger" data-act="clearAll">حذف كل أسماء هذا الصف</button>':''}</div></div>`;
+  }else if(panel==='points'){
+    ti.textContent='النقاط — '+db.cur;
+    const gs=[...Array(k.count).keys()].map(g=>({g,s:score(k,g)})).sort((a,b)=>b.s-a.s),mx=Math.max(1,...gs.map(x=>x.s));
+    const top=k.students.slice().sort((a,b)=>b.pts-a.pts).filter(s=>s.pts>0).slice(0,10);
+    B.innerHTML=`<div class="box"><h4>ترتيب المجموعات</h4><div class="bars">${gs.map(x=>`<div class="brow" style="--c:${COLORS[x.g]}"><span><i class="sw"></i>المجموعة ${x.g+1}</span><div class="track"><div class="fill" style="width:${Math.max(0,x.s)/mx*100}%"></div></div><b class="n">${x.s}</b></div>`).join('')}</div></div>
+    <div class="box"><h4>أكثر الطلاب نقاطاً</h4>${top.length?`<ol class="top">${top.map(s=>`<li>${esc(s.name)} — ${s.pts}</li>`).join('')}</ol>`:'<p class="note">لم تُمنح نقاط بعد. اضغط على اسم الطالب في مجموعته لإضافة نقطة.</p>'}</div>
+    <div><button class="danger" data-act="resetPts">تصفير نقاط ${esc(db.cur)}</button></div>`;
+  }else if(panel==='games'){
+    ti.textContent='الألعاب';
+    B.innerHTML=`<div class="box"><h4>قريباً إن شاء الله</h4><p class="note">هذا المكان محجوز للألعاب الصفية، وستُربط نتائجها بنقاط المجموعات تلقائياً.</p></div>`;
+  }else if(panel==='backup'){
+    ti.textContent='نسخة احتياطية';
+    B.innerHTML=`<div class="box"><p class="note">الأسماء والمجموعات والنقاط والشرائح محفوظة في هذا المتصفح على هذا الجهاز فقط. انسخ النسخة الاحتياطية واحفظها، ثم الصقها هنا على أي جهاز آخر.</p>
+    <textarea id="bk" readonly>${esc(JSON.stringify(db))}</textarea><div><button data-act="copy">نسخ</button> <span class="note" id="cpMsg"></span></div></div>
+    <div class="box"><h4>استعادة</h4><textarea id="imp" placeholder="الصق النسخة الاحتياطية هنا"></textarea><div><button data-act="import">استعادة البيانات</button> <span class="note" id="impMsg"></span></div></div>`;
+  }
+}
+const parseNames=(txt,def)=>txt.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^(.*?)[\s\-–—:,،]+([123])$/);return m?{name:m[1].trim(),level:+m[2]}:{name:l,level:def}}).filter(x=>x.name);
+$('#dBody').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const k=cls(),a=b.dataset.act;
+  if(a==='yes'){const f=pending;pending=null;f&&f();save();renderPanel();return}
+  if(a==='no'){pending=null;renderPanel();return}
+  if(a==='add'){
+    const list=parseNames($('#names').value,+$('#defLv').value);if(!list.length)return;
+    if(k.sample){k.students=[];k.sample=false}
+    list.forEach((x,i)=>k.students.push({id:uid(),name:x.name,level:x.level,group:(k.students.length+i)%k.count,pts:0}));
+    distribute(k,'mix');
+  }
+  if(a==='mix'||a==='same'){k.count=+$('#gCount').value;distribute(k,a)}
+  if(a==='del'){k.students=k.students.filter(s=>s.id!==b.dataset.id)}
+  if(a==='clearAll'){ask('حذف كل أسماء '+db.cur+'؟',()=>{k.students=[];k.bonus=[0,0,0,0,0,0];k.picked=[];k.sample=false});return}
+  if(a==='addCls'){const n=$('#newCls').value.trim();if(n&&!db.classes[n]){db.classes[n]=blank();db.cur=n;renderClasses()}}
+  if(a==='resetPts'){ask('تصفير كل نقاط '+db.cur+'؟',()=>{k.students.forEach(s=>s.pts=0);k.bonus=[0,0,0,0,0,0]});return}
+  if(a==='copy'){try{await navigator.clipboard.writeText($('#bk').value);$('#cpMsg').textContent='نُسخت.'}catch(err){$('#bk').select();$('#cpMsg').textContent='حدّد النص وانسخه يدوياً.'}return}
+  if(a==='import'){
+    try{const d=JSON.parse($('#imp').value);if(!d||!d.classes)throw 0;db=d;if(!db.classes[db.cur])db.cur=Object.keys(db.classes)[0];save();renderAll();$('#impMsg').textContent='تمت الاستعادة.'}
+    catch(err){$('#impMsg').textContent='النص غير صالح.'}return;
+  }
+  save();renderPanel();
+});
+$('#dBody').addEventListener('change',e=>{
+  const f=e.target.dataset.f;if(!f)return;const s=cls().students.find(x=>x.id===e.target.dataset.id);if(!s)return;
+  if(f==='name'){const v=e.target.value.trim();if(v)s.name=v}
+  if(f==='level')s.level=+e.target.value;
+  if(f==='group')s.group=+e.target.value;
+  cls().sample=false;save();
+});
+
+function renderAll(){renderClasses();renderGroups();fillScope();drawTimer()}
+renderAll();
+}
+</script>
+</body>
+</html>
